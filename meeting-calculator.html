@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Meeting Cost Calculator</title>
+    <meta charset="UTF-8">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 500px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: #f0f2f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2d3436;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2d3436;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            width: 100%;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .stop-btn {
+            background: #e74c3c;
+        }
+        .stop-btn:hover {
+            background: #c0392b;
+        }
+        .timer-display {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        .time {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2d3436;
+            margin: 10px 0;
+        }
+        .cost {
+            font-size: 3em;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+        .cost-label {
+            color: #7f8c8d;
+            font-size: 1.2em;
+        }
+        .hidden {
+            display: none;
+        }
+        .example {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💸 Meeting Cost Calculator</h1>
+        
+        <div class="example">
+            <strong>💡 Example:</strong> 5 people × $50/hour = $250/hour = $4.17 per minute
+        </div>
+        
+        <div class="input-group">
+            <label for="people">👥 Number of People in Meeting:</label>
+            <input type="number" id="people" placeholder="e.g., 8" min="1" value="5">
+        </div>
+        
+        <div class="input-group">
+            <label for="hourlyRate">💰 Average Hourly Rate per Person ($):</label>
+            <input type="number" id="hourlyRate" placeholder="e.g., 75" min="1" value="50">
+        </div>
+        
+        <button onclick="startMeeting()">▶️ Start Meeting Timer</button>
+        
+        <div id="timer" class="hidden">
+            <div class="timer-display">
+                <div class="cost-label">Meeting Duration:</div>
+                <div class="time" id="time">0:00</div>
+                
+                <div class="cost-label">Total Cost:</div>
+                <div class="cost">$<span id="cost">0.00</span></div>
+                
+                <div style="margin-top: 15px; color: #7f8c8d; font-size: 0.9em;">
+                    Cost per minute: $<span id="costPerMinute">0.00</span>
+                </div>
+            </div>
+            
+            <button class="stop-btn" onclick="stopMeeting()">⏹️ End Meeting</button>
+            <button onclick="resetMeeting()">🔄 Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let meetingTimer;
+        let startTime;
+        let isRunning = false;
+
+        function startMeeting() {
+            const people = parseInt(document.getElementById('people').value);
+            const rate = parseInt(document.getElementById('hourlyRate').value);
+            
+            if (!people || !rate || people < 1 || rate < 1) {
+                alert('Please enter valid numbers for both fields!');
+                return;
+            }
+            
+            if (isRunning) {
+                alert('Meeting timer is already running!');
+                return;
+            }
+            
+            startTime = new Date();
+            isRunning = true;
+            
+            // Calculate cost per minute for display
+            const costPerMinute = (people * rate / 60).toFixed(2);
+            document.getElementById('costPerMinute').textContent = costPerMinute;
+            
+            meetingTimer = setInterval(updateTimer, 1000);
+            document.getElementById('timer').classList.remove('hidden');
+            
+            // Scroll to timer
+            document.getElementById('timer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function updateTimer() {
+            if (!isRunning) return;
+            
+            const now = new Date();
+            const elapsedSeconds = Math.floor((now - startTime) / 1000);
+            const minutes = Math.floor(elapsedSeconds / 60);
+            const seconds = elapsedSeconds % 60;
+            
+            const people = parseInt(document.getElementById('people').value);
+            const rate = parseInt(document.getElementById('hourlyRate').value);
+            
+            // Calculate total cost
+            const totalCost = (people * rate * (elapsedSeconds / 3600)).toFixed(2);
+            
+            document.getElementById('time').textContent = 
+                minutes + ':' + seconds.toString().padStart(2, '0');
+            document.getElementById('cost').textContent = totalCost;
+        }
+
+        function stopMeeting() {
+            if (meetingTimer) {
+                clearInterval(meetingTimer);
+                isRunning = false;
+                
+                // Show final message
+                const finalCost = document.getElementById('cost').textContent;
+                alert(`Meeting ended! Total cost: $${finalCost}`);
+            }
+        }
+
+        function resetMeeting() {
+            if (meetingTimer) {
+                clearInterval(meetingTimer);
+            }
+            isRunning = false;
+            document.getElementById('timer').classList.add('hidden');
+            document.getElementById('time').textContent = '0:00';
+            document.getElementById('cost').textContent = '0.00';
+            document.getElementById('costPerMinute').textContent = '0.00';
+        }
+
+        // Enter key support
+        document.getElementById('people').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') startMeeting();
+        });
+        
+        document.getElementById('hourlyRate').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') startMeeting();
+        });
+    </script>
+</body>
+</html>
