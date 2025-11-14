@@ -191,10 +191,14 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
+
+        .meeting-active .btn:not(.stop):not(.reset) {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="mainContainer">
         <h1>💸 Meeting Cost Calculator</h1>
         <div class="subtitle">See the real cost of your meetings in real-time</div>
         
@@ -219,7 +223,7 @@
             <div class="time" id="timeDisplay">00:00</div>
             
             <div class="cost-label">Total Cost:</div>
-            <div class="cost pulse" id="costDisplay">$0.00</div>
+            <div class="cost" id="costDisplay">$0.00</div>
             
             <div class="stats">
                 <div class="stat-box">
@@ -240,21 +244,22 @@
     <script>
         let meetingTimer = null;
         let startTime = null;
-        let totalCost = 0;
         let isRunning = false;
+        let totalSeconds = 0;
 
         function startMeeting() {
             const people = parseInt(document.getElementById('people').value);
             const rate = parseInt(document.getElementById('hourlyRate').value);
             const startBtn = document.getElementById('startBtn');
             const timerDisplay = document.getElementById('timerDisplay');
+            const mainContainer = document.getElementById('mainContainer');
 
             // Validation
-            if (!people || people < 1) {
+            if (!people || people < 1 || isNaN(people)) {
                 alert('Please enter a valid number of people (at least 1)');
                 return;
             }
-            if (!rate || rate < 1) {
+            if (!rate || rate < 1 || isNaN(rate)) {
                 alert('Please enter a valid hourly rate (at least $1)');
                 return;
             }
@@ -275,29 +280,34 @@
             // Start timer
             startTime = new Date();
             isRunning = true;
+            totalSeconds = 0;
+            
+            // Update UI
             startBtn.disabled = true;
-            startBtn.textContent = '⏱️ Meeting in Progress...';
             timerDisplay.style.display = 'block';
+            mainContainer.classList.add('meeting-active');
+            document.getElementById('costDisplay').classList.add('pulse');
 
-            // Update every 100ms for smooth animation
-            meetingTimer = setInterval(updateMeetingDisplay, 100);
+            // Update immediately and then every second
+            updateMeetingDisplay();
+            meetingTimer = setInterval(updateMeetingDisplay, 1000);
         }
 
         function updateMeetingDisplay() {
             if (!isRunning) return;
 
             const now = new Date();
-            const elapsedTime = (now - startTime) / 1000; // Convert to seconds
+            totalSeconds = Math.floor((now - startTime) / 1000);
             
             const people = parseInt(document.getElementById('people').value);
             const rate = parseInt(document.getElementById('hourlyRate').value);
             
             // Calculate current cost
-            totalCost = (people * rate * elapsedTime) / 3600;
+            const totalCost = (people * rate * totalSeconds) / 3600;
             
             // Format time
-            const minutes = Math.floor(elapsedTime / 60);
-            const seconds = Math.floor(elapsedTime % 60);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
             
             // Update displays
             document.getElementById('timeDisplay').textContent = 
@@ -312,17 +322,28 @@
             }
             
             isRunning = false;
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('startBtn').textContent = '▶️ Start Meeting Timer';
+            const mainContainer = document.getElementById('mainContainer');
+            const startBtn = document.getElementById('startBtn');
+            
+            startBtn.disabled = false;
+            mainContainer.classList.remove('meeting-active');
             document.getElementById('costDisplay').classList.remove('pulse');
             
             // Show final summary
             const people = parseInt(document.getElementById('people').value);
             const rate = parseInt(document.getElementById('hourlyRate').value);
-            const elapsedSeconds = totalCost * 3600 / (people * rate);
-            const minutes = Math.floor(elapsedSeconds / 60);
+            const totalCost = (people * rate * totalSeconds) / 3600;
+            const minutes = Math.floor(totalSeconds / 60);
             
-            alert(`Meeting ended!\n\nDuration: ${minutes} minutes\nTotal Cost: $${totalCost.toFixed(2)}\n\nThat's $${(totalCost / minutes).toFixed(2)} per minute!`);
+            let message = `Meeting ended!\n\n`;
+            message += `Duration: ${minutes} minute${minutes !== 1 ? 's' : ''} ${totalSeconds % 60} second${totalSeconds % 60 !== 1 ? 's' : ''}\n`;
+            message += `Total Cost: $${totalCost.toFixed(2)}\n`;
+            
+            if (minutes > 0) {
+                message += `Cost per minute: $${(totalCost / minutes).toFixed(2)}`;
+            }
+            
+            alert(message);
         }
 
         function resetMeeting() {
@@ -334,18 +355,22 @@
             
             // Reset all values
             isRunning = false;
-            totalCost = 0;
+            totalSeconds = 0;
             startTime = null;
             
-            // Reset displays
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('startBtn').textContent = '▶️ Start Meeting Timer';
+            // Reset UI
+            const mainContainer = document.getElementById('mainContainer');
+            const startBtn = document.getElementById('startBtn');
+            const timerDisplay = document.getElementById('timerDisplay');
+            
+            startBtn.disabled = false;
+            mainContainer.classList.remove('meeting-active');
+            timerDisplay.style.display = 'none';
             document.getElementById('timeDisplay').textContent = '00:00';
             document.getElementById('costDisplay').textContent = '$0.00';
             document.getElementById('costPerMinute').textContent = '$0.00';
             document.getElementById('costPerSecond').textContent = '$0.00';
             document.getElementById('costDisplay').classList.remove('pulse');
-            document.getElementById('timerDisplay').style.display = 'none';
         }
 
         // Enter key support
@@ -360,10 +385,19 @@
         // Input validation
         document.getElementById('people').addEventListener('input', function(e) {
             if (this.value < 1) this.value = 1;
+            if (this.value > 1000) this.value = 1000;
         });
 
         document.getElementById('hourlyRate').addEventListener('input', function(e) {
             if (this.value < 1) this.value = 1;
+            if (this.value > 1000) this.value = 1000;
+        });
+
+        // Prevent form submission on enter
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+            }
         });
     </script>
 </body>
